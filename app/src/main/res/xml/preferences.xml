@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="@string/songs">
+        <Preference
+                android:icon="@drawable/library"
+                android:key="source_of_songs"
+                android:summary="@string/source_of_songs_summary"
+                android:title="@string/source_of_songs">
+            <intent
+                    android:action="android.intent.action.MAIN"
+                    android:targetClass="hu.csomorbalazs.runbeat.MusicSourceActivity"
+                    android:targetPackage="hu.csomorbalazs.runbeat" />
+        </Preference>
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/title_spotify_settings">
+        <Preference
+                android:icon="@drawable/profile"
+                android:key="remove_account"
+                android:summary="@string/remove_account_summary"
+                android:title="@string/remove_spotify_account">
+            <intent
+                    android:action="android.intent.action.MAIN"
+                    android:targetClass="hu.csomorbalazs.runbeat.WebViewActivity"
+                    android:targetPackage="hu.csomorbalazs.runbeat" />
+        </Preference>
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/other_title">
+        <Preference
+                android:icon="@drawable/feedback"
+                android:key="send_feedback"
+                android:summary="@string/send_feedback_summary"
+                android:title="@string/send_feedback" />
+        <Preference
+                android:icon="@drawable/info"
+                android:key="about"
+                android:summary="@string/info_about_runbeat"
+                android:title="@string/about_the_app" />
+    </PreferenceCategory>
+</PreferenceScreen>

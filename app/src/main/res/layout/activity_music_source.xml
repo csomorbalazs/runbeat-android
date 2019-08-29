@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".MusicSourceActivity">
+
+    <TextView
+            android:id="@+id/textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/choose_music_source"
+            android:textColor="@color/accent"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    <RadioGroup
+            android:id="@+id/sourceRadioGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textView">
+
+        <RadioButton
+                android:id="@+id/rbtnRunning"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:paddingStart="10dp"
+                android:textSize="18sp"
+                tools:text="Spotify running" />
+
+        <RadioButton
+                android:id="@+id/rbtnMyLibrary"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:paddingStart="10dp"
+                android:textSize="18sp"
+
+                tools:text="My library" />
+
+        <RadioButton
+                android:id="@+id/rbtnPlaylist"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:paddingStart="10dp"
+                android:textSize="18sp"
+                tools:text="Playlist" />
+    </RadioGroup>
+
+    <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginBottom="8dp"
+            android:fadingEdgeLength="100dp"
+            android:requiresFadingEdge="vertical"
+            app:layout_constraintBottom_toTopOf="@+id/btnSave"
+            app:layout_constraintTop_toBottomOf="@id/sourceRadioGroup">
+
+        <RadioGroup
+                android:id="@+id/playlistRadioGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="40dp"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="@+id/sourceRadioGroup"
+                app:layout_constraintTop_toBottomOf="@+id/sourceRadioGroup">
+
+            <LinearLayout
+                    android:id="@+id/layoutLoading"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                <ProgressBar
+                        android:id="@+id/prBarPlaylists"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp" />
+
+                <TextView
+                        android:id="@+id/tvLoading"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="@string/loading_playlists"
+                        android:textColor="@color/primary_text"
+                        android:textSize="16sp" />
+            </LinearLayout>
+        </RadioGroup>
+    </ScrollView>
+
+    <Button
+            android:id="@+id/btnSave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="32dp"
+            android:background="@color/accent"
+            android:text="@string/save_changes"
+            android:textColor="#FFFF"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+</android.support.constraint.ConstraintLayout>
