@@ -14,6 +14,9 @@ import android.view.animation.AnimationUtils.loadAnimation
 import com.spotify.android.appremote.api.ConnectionParams
 import com.spotify.android.appremote.api.Connector
 import com.spotify.android.appremote.api.SpotifyAppRemote
+import com.spotify.android.appremote.api.error.CouldNotFindSpotifyApp
+import com.spotify.android.appremote.api.error.NotLoggedInException
+import com.spotify.android.appremote.api.error.UserNotAuthorizedException
 import com.spotify.protocol.types.PlayerState
 import com.spotify.sdk.android.authentication.AuthenticationClient
 import com.spotify.sdk.android.authentication.AuthenticationRequest
@@ -51,6 +54,7 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
         private const val CLIENT_ID = "cad943e35ce74a4c94a70016befdadc4"
         private const val ACCESS_TOKEN_KEY = "ACCESS_TOKEN_KEY"
         private const val PREF_NAME: String = "SharedPreferences"
+        private const val PRODUCT_PREMIUM: String = "premium"
 
         var webSpotify: SpotifyService? = null
         var mSpotifyAppRemote: SpotifyAppRemote? = null
@@ -201,6 +205,39 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
         }
     }
 
+    private fun showNotPremiumDialog() {
+        val alertDialog: AlertDialog = this.let {
+            val builder = AlertDialog.Builder(it)
+            builder.apply {
+                setTitle(getString(R.string.premium_required))
+                setIcon(getDrawable(R.drawable.error))
+                setMessage(getString(R.string.premium_required_message))
+
+                setPositiveButton(getString(R.string.upgrade_premium)) { _, _ ->
+                    this@MainActivity.openWebsite(getString(R.string.spotify_premium_url))
+                }
+
+                setNegativeButton(getString(R.string.exit)) { _, _ ->
+                    finishAndRemoveTask()
+                }
+
+                setOnCancelListener {
+                    finishAndRemoveTask()
+                }
+
+                setOnKeyListener { _, keyCode, _ ->
+                    if (keyCode == KeyEvent.KEYCODE_BACK) {
+                        finishAndRemoveTask()
+                    }
+                    true
+                }
+            }
+            builder.create()
+        }
+
+        alertDialog.show()
+    }
+
     private fun sendActionToMusicService(action: String) {
         val intentService = Intent(this@MainActivity, MusicService::class.java)
         intentService.action = action
@@ -239,31 +276,6 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
     override fun onStart() {
         super.onStart()
 
-        val connectionParams = ConnectionParams.Builder(CLIENT_ID)
-            .setRedirectUri(REDIRECT_URI)
-            .showAuthView(true)
-            .build()
-
-        //Starting SpotifyAppRemote connection
-        SpotifyAppRemote.disconnect(mSpotifyAppRemote)
-        SpotifyAppRemote.connect(this, connectionParams,
-            object : Connector.ConnectionListener {
-                override fun onConnected(spotifyAppRemote: SpotifyAppRemote) {
-                    mSpotifyAppRemote = spotifyAppRemote
-
-                    mSpotifyAppRemote!!.playerApi
-                        .subscribeToPlayerState()
-                        .setEventCallback { onPlayerState(it) }
-
-                    //Start music playing service
-                    startServiceIfReady()
-                }
-
-                override fun onFailure(throwable: Throwable) {
-                    Log.e("MainActivity", throwable.message, throwable)
-                }
-            })
-
         //Connect to Spotify web api
         if (accessToken == null) {
             getNewAccessToken()
@@ -292,6 +304,7 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
         builder.setScopes(
             arrayOf(
                 "streaming",
+                "user-read-private",
                 "user-library-read",
                 "playlist-read-private",
                 "playlist-read-collaborative"
@@ -331,7 +344,13 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
         webSpotify = api.service
 
         webSpotify?.getMe(object : Callback<UserPrivate> {
-            override fun success(t: UserPrivate, response: Response) {
+            override fun success(user: UserPrivate, response: Response) {
+                if (user.product != PRODUCT_PREMIUM) {
+                    showNotPremiumDialog()
+                    return
+                }
+
+                connectAppRemote()
                 startServiceIfReady()
             }
 
@@ -339,6 +358,38 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
                 getNewAccessToken()
             }
         })
+    }
+
+    private fun connectAppRemote() {
+        val connectionParams = ConnectionParams.Builder(CLIENT_ID)
+            .setRedirectUri(REDIRECT_URI)
+            .setAuthMethod(ConnectionParams.AuthMethod.APP_ID)
+            .showAuthView(true)
+            .build()
+
+        //Starting SpotifyAppRemote connection
+        SpotifyAppRemote.disconnect(mSpotifyAppRemote)
+        SpotifyAppRemote.connect(this, connectionParams,
+            object : Connector.ConnectionListener {
+                override fun onConnected(spotifyAppRemote: SpotifyAppRemote) {
+                    mSpotifyAppRemote = spotifyAppRemote
+
+                    mSpotifyAppRemote!!.playerApi
+                        .subscribeToPlayerState()
+                        .setEventCallback(::onPlayerState)
+
+                    //Start music playing service
+                    startServiceIfReady()
+                }
+
+                override fun onFailure(throwable: Throwable) {
+                    if (throwable is NotLoggedInException || throwable is UserNotAuthorizedException) {
+                        Log.e("MainActivity", throwable.message, throwable)
+                    } else if (throwable is CouldNotFindSpotifyApp) {
+                        checkIfSpotifyIsInstalled()
+                    }
+                }
+            })
     }
 
     //Start service, or if already running send update Spotify intent

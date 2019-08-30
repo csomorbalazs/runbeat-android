@@ -47,4 +47,11 @@
     <string name="save_changes">Save changes</string>
     <string name="album_cover">Album cover</string>
     <string name="error">Error</string>
+    <string name="spotify_premium_url">https://www.spotify.com/premium/</string>
+    <string name="upgrade_premium">Upgrade to premium</string>
+    <string name="premium_required">Spotify Premium required</string>
+    <string name="premium_required_message">RunBeat requires a Spotify Premium account to play your music. Upgrade to premium and try again.</string>
+    <string name="spotify_not_installed">Spotify not installed</string>
+    <string name="spotify_not_installed_message">This app uses Spotify to play music. Install the Spotify app and try again.</string>
+    <string name="install_spotify">Install Spotify</string>
 </resources>
