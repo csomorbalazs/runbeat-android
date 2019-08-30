@@ -29,13 +29,11 @@ import hu.csomorbalazs.runbeat.Constants.Companion.ACTION_STOP
 import hu.csomorbalazs.runbeat.Constants.Companion.ACTION_UPDATE_CURRENT_BPM
 import hu.csomorbalazs.runbeat.Constants.Companion.ACTION_UPDATE_MUSIC_SOURCE
 import hu.csomorbalazs.runbeat.Constants.Companion.ACTION_UPDATE_SPOTIFY
-import hu.csomorbalazs.runbeat.Constants.Companion.SPOTIFY_PACKAGE_NAME
 import hu.csomorbalazs.runbeat.Constants.Companion.serviceRunning
 import hu.csomorbalazs.runbeat.model.CounterHandler
 import hu.csomorbalazs.runbeat.service.MusicService
 import hu.csomorbalazs.runbeat.util.isNetworkAvailable
-import hu.csomorbalazs.runbeat.util.isPackageInstalled
-import hu.csomorbalazs.runbeat.util.openPlayStoreForApp
+import hu.csomorbalazs.runbeat.util.openWebsite
 import kaaes.spotify.webapi.android.SpotifyApi
 import kaaes.spotify.webapi.android.SpotifyService
 import kaaes.spotify.webapi.android.models.UserPrivate
@@ -127,17 +125,17 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
     }
 
     private fun checkIfSpotifyIsInstalled(): Boolean {
-        if (!isPackageInstalled(SPOTIFY_PACKAGE_NAME, packageManager)) {
+        if (!SpotifyAppRemote.isSpotifyInstalled(this@MainActivity)) {
             val alertDialog: AlertDialog = this.let {
                 val builder = AlertDialog.Builder(it)
                 builder.apply {
-                    setTitle("Spotify not installed")
+                    setTitle(getString(R.string.spotify_not_installed))
                     setIcon(getDrawable(R.drawable.error))
-                    setMessage("This app uses Spotify to play music. Install the Spotify app and try again.")
+                    setMessage(getString(R.string.spotify_not_installed_message))
 
-                    setPositiveButton("Install Spotify") { _, _ ->
+                    setPositiveButton(getString(R.string.install_spotify)) { _, _ ->
                         finishAndRemoveTask()
-                        this@MainActivity.openPlayStoreForApp(SPOTIFY_PACKAGE_NAME)
+                        AuthenticationClient.openDownloadSpotifyActivity(this@MainActivity)
                     }
 
                     setNegativeButton(getString(R.string.exit)) { _, _ ->
@@ -175,7 +173,7 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
                 builder.apply {
                     setTitle(getString(R.string.no_connection))
                     setIcon(getDrawable(R.drawable.error))
-                    setMessage(getString(R.string.runbeat_could_not_connect))
+                    setMessage(getString(R.string.no_connection_message))
 
                     setPositiveButton(getString(R.string.retry)) { _, _ ->
                         checkInternetConnection()

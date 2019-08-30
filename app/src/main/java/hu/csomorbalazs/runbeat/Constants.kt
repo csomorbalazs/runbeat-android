@@ -12,7 +12,6 @@ class Constants {
         const val ACTION_BROADCAST_STATE = "ACTION_BROADCAST_STATE "
         const val ACTION_BROADCAST_BPM = "ACTION_BROADCAST_BPM"
         const val ACTION_UPDATE_SPOTIFY = "ACTION_UPDATE_SPOTIFY"
-        const val SPOTIFY_PACKAGE_NAME = "com.spotify.music"
 
         var serviceRunning = false
     }
