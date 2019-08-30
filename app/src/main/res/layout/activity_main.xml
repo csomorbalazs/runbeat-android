@@ -139,7 +139,7 @@
             android:id="@+id/ivLoadingError"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:contentDescription="@string/loading"
+            android:contentDescription="@string/error"
             android:src="@drawable/error"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="@+id/ivCover"

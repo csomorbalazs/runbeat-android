@@ -1,13 +1,12 @@
 package hu.csomorbalazs.runbeat
 
 import android.content.*
-import android.net.ConnectivityManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
+import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -30,9 +29,13 @@ import hu.csomorbalazs.runbeat.Constants.Companion.ACTION_STOP
 import hu.csomorbalazs.runbeat.Constants.Companion.ACTION_UPDATE_CURRENT_BPM
 import hu.csomorbalazs.runbeat.Constants.Companion.ACTION_UPDATE_MUSIC_SOURCE
 import hu.csomorbalazs.runbeat.Constants.Companion.ACTION_UPDATE_SPOTIFY
+import hu.csomorbalazs.runbeat.Constants.Companion.SPOTIFY_PACKAGE_NAME
 import hu.csomorbalazs.runbeat.Constants.Companion.serviceRunning
 import hu.csomorbalazs.runbeat.model.CounterHandler
 import hu.csomorbalazs.runbeat.service.MusicService
+import hu.csomorbalazs.runbeat.util.isNetworkAvailable
+import hu.csomorbalazs.runbeat.util.isPackageInstalled
+import hu.csomorbalazs.runbeat.util.openPlayStoreForApp
 import kaaes.spotify.webapi.android.SpotifyApi
 import kaaes.spotify.webapi.android.SpotifyService
 import kaaes.spotify.webapi.android.models.UserPrivate
@@ -103,9 +106,6 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
             }
         }
 
-        accessToken =
-            getSharedPreferences(PREF_NAME, MODE_PRIVATE).getString(ACCESS_TOKEN_KEY, null)
-
         counterHandler = CounterHandler.Builder()
             .decrementalView(btnMinus)
             .incrementalView(btnPlus)
@@ -117,6 +117,90 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
             .counterStep(10)
             .listener(this)
             .build()
+
+        if (checkIfSpotifyIsInstalled()) {
+            checkInternetConnection()
+        }
+
+        accessToken =
+            getSharedPreferences(PREF_NAME, MODE_PRIVATE).getString(ACCESS_TOKEN_KEY, null)
+    }
+
+    private fun checkIfSpotifyIsInstalled(): Boolean {
+        if (!isPackageInstalled(SPOTIFY_PACKAGE_NAME, packageManager)) {
+            val alertDialog: AlertDialog = this.let {
+                val builder = AlertDialog.Builder(it)
+                builder.apply {
+                    setTitle("Spotify not installed")
+                    setIcon(getDrawable(R.drawable.error))
+                    setMessage("This app uses Spotify to play music. Install the Spotify app and try again.")
+
+                    setPositiveButton("Install Spotify") { _, _ ->
+                        finishAndRemoveTask()
+                        this@MainActivity.openPlayStoreForApp(SPOTIFY_PACKAGE_NAME)
+                    }
+
+                    setNegativeButton(getString(R.string.exit)) { _, _ ->
+                        finishAndRemoveTask()
+                    }
+
+                    setOnCancelListener {
+                        finishAndRemoveTask()
+                    }
+
+                    setOnKeyListener { _, keyCode, _ ->
+                        if (keyCode == KeyEvent.KEYCODE_BACK) {
+                            finishAndRemoveTask()
+                        }
+                        true
+                    }
+                }
+                builder.create()
+            }
+
+            alertDialog.show()
+
+            return false
+        } else {
+            return true
+        }
+    }
+
+    private fun checkInternetConnection() {
+        if (!this.isNetworkAvailable()) {
+            SpotifyAppRemote.disconnect(mSpotifyAppRemote)
+
+            val alertDialog: AlertDialog = this.let {
+                val builder = AlertDialog.Builder(it)
+                builder.apply {
+                    setTitle(getString(R.string.no_connection))
+                    setIcon(getDrawable(R.drawable.error))
+                    setMessage(getString(R.string.runbeat_could_not_connect))
+
+                    setPositiveButton(getString(R.string.retry)) { _, _ ->
+                        checkInternetConnection()
+                    }
+
+                    setNegativeButton(getString(R.string.exit)) { _, _ ->
+                        finishAndRemoveTask()
+                    }
+
+                    setOnCancelListener {
+                        finishAndRemoveTask()
+                    }
+
+                    setOnKeyListener { _, keyCode, _ ->
+                        if (keyCode == KeyEvent.KEYCODE_BACK) {
+                            finishAndRemoveTask()
+                        }
+                        true
+                    }
+                }
+                builder.create()
+            }
+
+            alertDialog.show()
+        }
     }
 
     private fun sendActionToMusicService(action: String) {
@@ -156,34 +240,6 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
 
     override fun onStart() {
         super.onStart()
-
-        if (!isNetworkAvailable()) {
-            val alertDialog: AlertDialog = this.let {
-                val builder = AlertDialog.Builder(it)
-                builder.apply {
-                    setTitle(getString(R.string.no_connection))
-                    setMessage(getString(R.string.runbeat_could_not_connect))
-
-                    setPositiveButton(getString(R.string.retry)) { _, _ ->
-                        onStart()
-                    }
-
-                    setNegativeButton(getString(R.string.exit)) { _, _ ->
-                        finishAndRemoveTask()
-                    }
-                }
-                builder.create()
-            }
-
-            Handler().postDelayed({
-                alertDialog.show()
-            }, 0)
-
-            return
-        }
-
-        ivLoadingError.visibility = View.GONE
-
 
         val connectionParams = ConnectionParams.Builder(CLIENT_ID)
             .setRedirectUri(REDIRECT_URI)
@@ -427,14 +483,4 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
 
         return true
     }
-
-
-    private fun isNetworkAvailable(): Boolean {
-        val connectivityManager: ConnectivityManager =
-            getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val activeNetworkInfo = connectivityManager.activeNetworkInfo
-
-        return activeNetworkInfo != null && activeNetworkInfo.isConnected
-    }
-
 }

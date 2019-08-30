@@ -14,6 +14,9 @@ import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.RadioButton
+import hu.csomorbalazs.runbeat.util.checkWithoutAnimation
+import hu.csomorbalazs.runbeat.util.disable
+import hu.csomorbalazs.runbeat.util.enable
 import kaaes.spotify.webapi.android.models.Pager
 import kaaes.spotify.webapi.android.models.PlaylistSimple
 import kotlinx.android.synthetic.main.activity_music_source.*

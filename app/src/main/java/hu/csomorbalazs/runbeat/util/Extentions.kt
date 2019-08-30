@@ -1,4 +1,4 @@
-package hu.csomorbalazs.runbeat
+package hu.csomorbalazs.runbeat.util
 
 import android.widget.Button
 import android.widget.RadioButton
