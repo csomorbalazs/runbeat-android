@@ -46,7 +46,7 @@
     <string name="loading_playlists">Loading your playlists…</string>
     <string name="save_changes">Save changes</string>
     <string name="album_cover">Album cover</string>
-    <string name="error">Error</string>
+    <string name="error">Unexpected error</string>
     <string name="spotify_premium_url">https://www.spotify.com/premium/</string>
     <string name="upgrade_premium">Upgrade to premium</string>
     <string name="premium_required">Spotify Premium required</string>

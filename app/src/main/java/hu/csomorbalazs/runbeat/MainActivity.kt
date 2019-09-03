@@ -3,6 +3,8 @@ package hu.csomorbalazs.runbeat
 import android.content.*
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.HandlerThread
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
@@ -118,10 +120,6 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
             .listener(this)
             .build()
 
-        if (checkIfSpotifyIsInstalled()) {
-            checkInternetConnection()
-        }
-
         accessToken =
             getSharedPreferences(PREF_NAME, MODE_PRIVATE).getString(ACCESS_TOKEN_KEY, null)
     }
@@ -166,7 +164,7 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
         }
     }
 
-    private fun checkInternetConnection() {
+    private fun checkInternetConnection(): Boolean {
         if (!this.isNetworkAvailable()) {
             SpotifyAppRemote.disconnect(mSpotifyAppRemote)
 
@@ -200,6 +198,10 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
             }
 
             alertDialog.show()
+            return false
+        } else {
+            startSpotifyConnections()
+            return true
         }
     }
 
@@ -274,11 +276,8 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
     override fun onStart() {
         super.onStart()
 
-        //Connect to Spotify web api
-        if (accessToken == null) {
-            getNewAccessToken()
-        } else {
-            connectWebSpotify()
+        if (checkIfSpotifyIsInstalled() && checkInternetConnection()) {
+            startServiceIfReady()
         }
 
         //Register broadcast receivers
@@ -289,6 +288,15 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
         if (serviceRunning) {
             sendActionToMusicService(ACTION_UPDATE_MUSIC_SOURCE)
             sendActionToMusicService(ACTION_BROADCAST_STATE)
+        }
+    }
+
+    private fun startSpotifyConnections() {
+        //Connect to Spotify web api and then app remote
+        if (accessToken == null) {
+            getNewAccessToken()
+        } else {
+            connectWebSpotify()
         }
     }
 
@@ -359,6 +367,19 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
     }
 
     private fun connectAppRemote() {
+        Log.d("MAIN", "connectAppRemote")
+
+        val timeOutHandlerThread = HandlerThread("songChangeHandlerThread")
+            .apply {
+                start()
+            }
+        val timeOutHandler = Handler(timeOutHandlerThread.looper)
+
+        timeOutHandler.removeCallbacksAndMessages(null)
+        timeOutHandler.postDelayed({
+            showErrorInsteadOfLoading()
+        }, 5000)
+
         val connectionParams = ConnectionParams.Builder(CLIENT_ID)
             .setRedirectUri(REDIRECT_URI)
             .setAuthMethod(ConnectionParams.AuthMethod.APP_ID)
@@ -370,6 +391,8 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
         SpotifyAppRemote.connect(this, connectionParams,
             object : Connector.ConnectionListener {
                 override fun onConnected(spotifyAppRemote: SpotifyAppRemote) {
+                    timeOutHandler.removeCallbacksAndMessages(null)
+
                     mSpotifyAppRemote = spotifyAppRemote
 
                     mSpotifyAppRemote!!.playerApi
@@ -382,6 +405,7 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
 
                 override fun onFailure(throwable: Throwable) {
                     if (throwable is NotLoggedInException || throwable is UserNotAuthorizedException) {
+                        showErrorInsteadOfLoading()
                         Log.e("MainActivity", throwable.message, throwable)
                     } else if (throwable is CouldNotFindSpotifyApp) {
                         checkIfSpotifyIsInstalled()
@@ -435,8 +459,18 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
 
         mSpotifyAppRemote!!.imagesApi.getImage(currentTrack.imageUri).setResultCallback {
             prBar.visibility = View.GONE
+            ivLoadingError.visibility = View.GONE
             ivCover.setImageBitmap(it)
             ivCover.visibility = View.VISIBLE
+        }.setErrorCallback {
+            showErrorInsteadOfLoading()
+        }
+    }
+
+    private fun showErrorInsteadOfLoading() {
+        runOnUiThread {
+            prBar.visibility = View.GONE
+            ivLoadingError.visibility = View.VISIBLE
         }
     }
 

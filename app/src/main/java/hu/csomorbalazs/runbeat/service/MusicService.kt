@@ -34,6 +34,7 @@ import hu.csomorbalazs.runbeat.MusicSourceActivity.Companion.SPOTIFY_RUNNING
 import hu.csomorbalazs.runbeat.R
 import hu.csomorbalazs.runbeat.model.MyTrack
 import kaaes.spotify.webapi.android.SpotifyService
+import retrofit.RetrofitError
 import kotlin.random.Random
 
 class MusicService : Service(), SensorEventListener {
@@ -87,7 +88,7 @@ class MusicService : Service(), SensorEventListener {
 
                 spotifyAppRemote?.playerApi
                     ?.subscribeToPlayerState()
-                    ?.setEventCallback { onPlayerState(it) }
+                    ?.setEventCallback(::onPlayerState)
 
                 getMusicSource()
 
@@ -104,7 +105,7 @@ class MusicService : Service(), SensorEventListener {
 
                 spotifyAppRemote?.playerApi
                     ?.subscribeToPlayerState()
-                    ?.setEventCallback { onPlayerState(it) }
+                    ?.setEventCallback(::onPlayerState)
             }
 
             ACTION_UPDATE_MUSIC_SOURCE -> getMusicSource()
@@ -114,9 +115,7 @@ class MusicService : Service(), SensorEventListener {
 
                 songChangeHandler.removeCallbacksAndMessages(null)
 
-                songChangeHandler.postDelayed({
-                    changeTrack()
-                }, 0)
+                songChangeHandler.postDelayed(::changeTrack, 0)
             }
 
             ACTION_AUTO_DETECT_ON -> startStepCounting()
@@ -132,9 +131,7 @@ class MusicService : Service(), SensorEventListener {
 
                     songChangeHandler.removeCallbacksAndMessages(null)
 
-                    songChangeHandler.postDelayed({
-                        changeTrack()
-                    }, 1000)
+                    songChangeHandler.postDelayed(::changeTrack, 1000)
                 }
             }
 
@@ -156,10 +153,17 @@ class MusicService : Service(), SensorEventListener {
         Log.d(LOG_TAG, "changeTrack")
 
         if (seedReady && !isPaused) {
-            nextTrack = selectNextTrack()
-            if (seedTracks.contains(nextTrack)) seedTracks.remove(nextTrack)
+            try {
+                nextTrack = selectNextTrack()
+                if (seedTracks.contains(nextTrack)) seedTracks.remove(nextTrack)
 
-            spotifyAppRemote?.playerApi?.play(nextTrack.uri)
+                spotifyAppRemote?.playerApi?.play(nextTrack.uri)
+
+            } catch (e: RetrofitError) {
+                if (e.kind == RetrofitError.Kind.NETWORK) {
+                    Log.d(LOG_TAG, "Internet unavailable when calling ${e.url}")
+                }
+            }
         }
     }
 
@@ -184,12 +188,20 @@ class MusicService : Service(), SensorEventListener {
 
             currentTrack.uri = playerState.track.uri
 
-            AsyncTask.execute {
-                if (playerState.track.uri.contains(":track:")) {
-                    val id = playerState.track.uri.split(":track:")[1]
-                    val tempo = webSpotify?.getTrackAudioFeatures(id)?.tempo
-                    currentTrack.id = id
-                    currentTrack.tempo = tempo ?: currentBPM
+
+            if (playerState.track.uri.contains(":track:")) {
+                AsyncTask.execute {
+                    try {
+                        val id = playerState.track.uri.split(":track:")[1]
+                        val tempo = webSpotify?.getTrackAudioFeatures(id)?.tempo
+                        currentTrack.id = id
+                        currentTrack.tempo = tempo ?: currentBPM
+
+                    } catch (e: RetrofitError) {
+                        if (e.kind == RetrofitError.Kind.NETWORK) {
+                            Log.d(LOG_TAG, "Internet unavailable when calling ${e.url}")
+                        }
+                    }
                 }
             }
         }
@@ -199,9 +211,7 @@ class MusicService : Service(), SensorEventListener {
 
         if (delay > 0) {
             songChangeHandler.removeCallbacksAndMessages(null)
-            songChangeHandler.postDelayed({
-                changeTrack()
-            }, delay)
+            songChangeHandler.postDelayed(::changeTrack, delay)
         }
     }
 
@@ -250,6 +260,7 @@ class MusicService : Service(), SensorEventListener {
     }
 
     //Gets recommendation from the Web API, tries again with different request if unsuccessful
+    @Throws(RetrofitError::class)
     private fun getRecommendation(requestMap: MutableMap<String, Any>): MyTrack {
         val tracks = webSpotify?.getRecommendations(requestMap)?.tracks
 
@@ -265,6 +276,7 @@ class MusicService : Service(), SensorEventListener {
     }
 
     //Returns a list of track ids from the selected music source
+    @Throws(RetrofitError::class)
     private fun getMusicSeed(): List<String> {
         Log.d(LOG_TAG, "getMusicSeed")
 
@@ -316,11 +328,11 @@ class MusicService : Service(), SensorEventListener {
     }
 
     //Returns a list of seed tracks with their tempo, sorted and selected by energy and danceability
+    @Throws(RetrofitError::class)
     private fun getTempoOfTracks(tracks: List<String>): List<MyTrack> {
-
         val list: MutableList<MyTrack> = mutableListOf()
 
-        for (i in 0 until tracks.size step 100) {
+        for (i in tracks.indices step 100) {
             var trackIds = ""
 
             var upperLimit = 100
@@ -338,7 +350,7 @@ class MusicService : Service(), SensorEventListener {
             }
         }
 
-        return list.sortedBy { it.tempo }
+        return list.sortedBy(MyTrack::tempo)
     }
 
     private var musicSource: Int = -1
@@ -354,10 +366,10 @@ class MusicService : Service(), SensorEventListener {
         val newSelectedPlaylist: String?
 
         //If music source is a playlist, get playlist id
-        if (newMusicSource == PLAYLIST) {
-            newSelectedPlaylist = sp.getString(MusicSourceActivity.PLAYLIST_KEY, null)
+        newSelectedPlaylist = if (newMusicSource == PLAYLIST) {
+            sp.getString(MusicSourceActivity.PLAYLIST_KEY, null)
         } else {
-            newSelectedPlaylist = null
+            null
         }
 
         //If music source changed, load music into seedTracks
@@ -366,8 +378,14 @@ class MusicService : Service(), SensorEventListener {
             selectedPlaylist = newSelectedPlaylist
 
             AsyncTask.execute {
-                seedTracks = getTempoOfTracks(getMusicSeed()).toMutableList()
-                seedReady = true
+                try {
+                    seedTracks = getTempoOfTracks(getMusicSeed()).toMutableList()
+                    seedReady = true
+                } catch (e: RetrofitError) {
+                    if (e.kind == RetrofitError.Kind.NETWORK) {
+                        Log.d(LOG_TAG, "Internet unavailable when calling ${e.url}")
+                    }
+                }
             }
         }
     }
@@ -402,7 +420,6 @@ class MusicService : Service(), SensorEventListener {
             .setSmallIcon(R.drawable.shoe_notification)
             .setContentIntent(contentIntent).build()
     }
-
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel() {
