@@ -101,11 +101,11 @@ class MusicSourceActivity : AppCompatActivity() {
         }
 
         btnSave.setOnClickListener {
-
             saveMusicSource()
             if (musicSource == PLAYLIST) saveSelectedPlaylist()
 
             btnSave.disable()
+            finish()
         }
     }
 
