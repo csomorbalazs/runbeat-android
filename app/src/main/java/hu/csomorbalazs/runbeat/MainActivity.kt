@@ -7,8 +7,6 @@ import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.KeyEvent
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.view.animation.AnimationUtils.loadAnimation
 import com.spotify.android.appremote.api.ConnectionParams
@@ -87,8 +85,8 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
             sendActionToMusicService(ACTION_NEXT)
         }
 
-        btnChoose.setOnClickListener {
-            startActivity(Intent(this, MusicSourceActivity::class.java))
+        btnSettings.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
         }
 
         btnAutoDetect.setOnCheckedChangeListener { _, isChecked ->
@@ -513,23 +511,5 @@ class MainActivity : AppCompatActivity(), CounterHandler.CounterListener {
 
         v.clearAnimation()
         v.startAnimation(animation)
-    }
-
-    //Create menu
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    //Start settings activity on settings icon click
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.action_settings -> {
-                val intentSettings = Intent(this, SettingsActivity::class.java)
-                startActivity(intentSettings)
-            }
-        }
-
-        return true
     }
 }
