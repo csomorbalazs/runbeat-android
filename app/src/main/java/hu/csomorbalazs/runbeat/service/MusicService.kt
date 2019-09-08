@@ -287,7 +287,9 @@ class MusicService : Service(), SensorEventListener {
                 val runningTracks =
                     webSpotify?.getPlaylistTracks("spotify", RUNNING_PLAYLIST_ID)?.items
 
-                runningTracks?.forEach {
+                runningTracks?.filter {
+                    !it.is_local && it.track.is_playable
+                }?.forEach {
                     tracks.add(it.track.id)
                 }
             }
@@ -304,7 +306,9 @@ class MusicService : Service(), SensorEventListener {
                     )?.items
 
                     if (currentTracks != null && currentTracks.size != 0) {
-                        currentTracks.forEach {
+                        currentTracks.filter {
+                            it.track.is_playable
+                        }.forEach {
                             tracks.add(it.track.id)
                         }
                         if (currentTracks.size < 50) break
@@ -318,7 +322,9 @@ class MusicService : Service(), SensorEventListener {
                 val playlistTracks =
                     webSpotify?.getPlaylistTracks(webSpotify?.me?.id, selectedPlaylist)?.items
 
-                playlistTracks?.forEach {
+                playlistTracks?.filter {
+                    !it.is_local
+                }?.forEach {
                     tracks.add(it.track.id)
                 }
             }
