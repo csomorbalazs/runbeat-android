@@ -35,6 +35,7 @@ import hu.csomorbalazs.runbeat.R
 import hu.csomorbalazs.runbeat.model.MyTrack
 import kaaes.spotify.webapi.android.SpotifyService
 import retrofit.RetrofitError
+import kotlin.math.min
 import kotlin.random.Random
 
 class MusicService : Service(), SensorEventListener {
@@ -50,6 +51,7 @@ class MusicService : Service(), SensorEventListener {
 
         //ID of Spotify running playlist
         private const val RUNNING_PLAYLIST_ID = "37i9dQZF1DWT6anPZiHuxz"
+        private const val BACKUP_TRACK_ID = "5HbTUbKSPeNh75aKSW66OF"
 
         //Constants for selecting songs
         private const val ENERGY_LIMIT = 0.5F
@@ -253,9 +255,13 @@ class MusicService : Service(), SensorEventListener {
     private fun getRandomSeed(): String {
         var seed = ""
 
-        for (i in 0..4) {
+        for (i in 0 until min(seedTracks.size, 4)) {
             val random = Random.nextInt(0, seedTracks.size - 1)
             seed += "${seedTracks[random].id},"
+        }
+
+        if (seed.isBlank()) {
+            seed += BACKUP_TRACK_ID
         }
 
         return seed
