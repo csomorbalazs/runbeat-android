@@ -167,9 +167,14 @@ class MusicSourceActivity : AppCompatActivity() {
         MainActivity.webSpotify?.getMyPlaylists(object : Callback<Pager<PlaylistSimple>> {
 
             override fun success(t: Pager<PlaylistSimple>, response: Response) {
-                (playlistRadioGroup as ViewGroup).removeView(layoutLoading)
-
                 val playlists = t.items
+
+                if (playlists.isEmpty()) {
+                    handleNoSavedPlaylists()
+                    return
+                }
+
+                (playlistRadioGroup as ViewGroup).removeView(layoutLoading)
 
                 playlists.forEach {
                     playlistIDs.add(it.id)
@@ -218,6 +223,15 @@ class MusicSourceActivity : AppCompatActivity() {
                 prBarPlaylists.visibility = View.GONE
             }
         })
+    }
+
+    private fun handleNoSavedPlaylists() {
+        if (musicSource == PLAYLIST) {
+            musicSource = MY_LIBRARY
+            (sourceRadioGroup.getChildAt(MY_LIBRARY) as RadioButton).isChecked = true
+            saveMusicSource()
+        }
+        sourceRadioGroup.removeView(rbtnPlaylist)
     }
 
     //Formats the String from the second line (after \n)
