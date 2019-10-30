@@ -80,70 +80,72 @@ class MusicService : Service(), SensorEventListener {
     private var isPaused = true
     private var isStepCounting = false
 
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        when (intent.action) {
-            ACTION_START -> {
-                spotifyAppRemote = MainActivity.mSpotifyAppRemote
-                webSpotify = MainActivity.webSpotify
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null) {
+            when (intent.action) {
+                ACTION_START -> {
+                    spotifyAppRemote = MainActivity.mSpotifyAppRemote
+                    webSpotify = MainActivity.webSpotify
 
-                spotifyAppRemote?.playerApi
-                    ?.subscribeToPlayerState()
-                    ?.setEventCallback(::onPlayerState)
+                    spotifyAppRemote?.playerApi
+                        ?.subscribeToPlayerState()
+                        ?.setEventCallback(::onPlayerState)
 
-                getMusicSource()
+                    getMusicSource()
 
-                startForeground(
-                    NOTIF_FOREGROUND_ID,
-                    getMyNotification("...")
-                )
+                    startForeground(
+                        NOTIF_FOREGROUND_ID,
+                        getMyNotification("...")
+                    )
 
-            }
+                }
 
-            ACTION_UPDATE_SPOTIFY -> {
-                spotifyAppRemote = MainActivity.mSpotifyAppRemote
-                webSpotify = MainActivity.webSpotify
+                ACTION_UPDATE_SPOTIFY -> {
+                    spotifyAppRemote = MainActivity.mSpotifyAppRemote
+                    webSpotify = MainActivity.webSpotify
 
-                spotifyAppRemote?.playerApi
-                    ?.subscribeToPlayerState()
-                    ?.setEventCallback(::onPlayerState)
-            }
+                    spotifyAppRemote?.playerApi
+                        ?.subscribeToPlayerState()
+                        ?.setEventCallback(::onPlayerState)
+                }
 
-            ACTION_UPDATE_MUSIC_SOURCE -> getMusicSource()
+                ACTION_UPDATE_MUSIC_SOURCE -> getMusicSource()
 
-            ACTION_NEXT -> {
-                isPaused = false
-
-                songChangeHandler.removeCallbacksAndMessages(null)
-
-                songChangeHandler.postDelayed(::changeTrack, 0)
-            }
-
-            ACTION_AUTO_DETECT_ON -> startStepCounting()
-
-            ACTION_AUTO_DETECT_OFF -> stopStepCounting()
-
-            ACTION_UPDATE_CURRENT_BPM -> {
-                Log.d(LOG_TAG, ACTION_UPDATE_CURRENT_BPM)
-
-                currentBPM = intent.getIntExtra(EXTRA_BPM, currentBPM.toInt()).toFloat()
-
-                if (currentBPM !in (currentTrack.tempo - 5F)..(currentTrack.tempo + 5F)) {
+                ACTION_NEXT -> {
+                    isPaused = false
 
                     songChangeHandler.removeCallbacksAndMessages(null)
 
-                    songChangeHandler.postDelayed(::changeTrack, 1000)
+                    songChangeHandler.postDelayed(::changeTrack, 0)
                 }
+
+                ACTION_AUTO_DETECT_ON -> startStepCounting()
+
+                ACTION_AUTO_DETECT_OFF -> stopStepCounting()
+
+                ACTION_UPDATE_CURRENT_BPM -> {
+                    Log.d(LOG_TAG, ACTION_UPDATE_CURRENT_BPM)
+
+                    currentBPM = intent.getIntExtra(EXTRA_BPM, currentBPM.toInt()).toFloat()
+
+                    if (currentBPM !in (currentTrack.tempo - 5F)..(currentTrack.tempo + 5F)) {
+
+                        songChangeHandler.removeCallbacksAndMessages(null)
+
+                        songChangeHandler.postDelayed(::changeTrack, 1000)
+                    }
+                }
+
+                ACTION_BROADCAST_STATE -> {
+                    val stateBroadcastIntent = Intent(ACTION_BROADCAST_STATE)
+                    stateBroadcastIntent.putExtra(EXTRA_STEPCOUNTING, isStepCounting)
+                    stateBroadcastIntent.putExtra(EXTRA_BPM, currentBPM)
+
+                    sendBroadcast(stateBroadcastIntent)
+                }
+
+                ACTION_STOP -> stopService()
             }
-
-            ACTION_BROADCAST_STATE -> {
-                val stateBroadcastIntent = Intent(ACTION_BROADCAST_STATE)
-                stateBroadcastIntent.putExtra(EXTRA_STEPCOUNTING, isStepCounting)
-                stateBroadcastIntent.putExtra(EXTRA_BPM, currentBPM)
-
-                sendBroadcast(stateBroadcastIntent)
-            }
-
-            ACTION_STOP -> stopService()
         }
 
         return START_STICKY
