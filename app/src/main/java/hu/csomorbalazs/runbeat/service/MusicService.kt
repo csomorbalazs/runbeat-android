@@ -42,7 +42,6 @@ class MusicService : Service(), SensorEventListener {
     companion object {
         //Notification channel and notification ids
         private const val NOTIFICATION_CHANNEL_ID = "NOTIFICATION_CHANNEL_ID"
-        private const val NOTIFICATION_CHANNEL_NAME = "RunBeat is running in background"
         private const val NOTIF_FOREGROUND_ID = 101
 
         //Keys for intent extras
@@ -426,7 +425,7 @@ class MusicService : Service(), SensorEventListener {
             this, NOTIFICATION_CHANNEL_ID
         )
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentTitle("RunBeat is running")
+            .setContentTitle(getString(R.string.notification_text))
             .setShowWhen(false)
             .setContentText(text)
             .setSmallIcon(R.drawable.shoe_notification)
@@ -437,7 +436,7 @@ class MusicService : Service(), SensorEventListener {
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
-            NOTIFICATION_CHANNEL_NAME,
+            baseContext.getString(R.string.notification_channel_name),
             NotificationManager.IMPORTANCE_LOW
         )
 
